@@ -1,12 +1,12 @@
 # main.py
 import streamlit as st
 import pandas as pd
-from pathlib import Path
+import requests
+import io
 import unicodedata
 
 # ---------------- CONFIG ----------------
-EXCEL_FILENAME = "Marksheet Nov Sessional 2025.xlsx"
-
+GOOGLE_SHEET_FILE_ID = "1H_aN66Joy7Tuzx8NjTygOsMA1J2OUjnz"  # from your link
 COL_STUDENT_NAME = "Student Name"
 COL_ADMISSION_NO = "Admission No."
 COL_FATHER_NAME = "Father Name"   # optional
@@ -14,43 +14,49 @@ COL_FATHER_NAME = "Father Name"   # optional
 st.set_page_config(page_title="Marksheet Viewer", layout="wide")
 
 
-# Clean simple converter → always returns text
+# ---------------- GOOGLE SHEETS LOADER ----------------
+@st.cache_data(ttl=300)  # cache for 5 minutes; adjust as needed
+def download_sheet_xlsx(file_id: str) -> bytes:
+    """
+    Download a Google Sheet as an XLSX file via the export endpoint.
+    The sheet must be shared (Anyone with the link can view) or accessible.
+    """
+    url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
+    r = requests.get(url, timeout=30)
+    r.raise_for_status()
+    return r.content
+
+
+def load_excelfile_from_sheet(file_id: str):
+    """Return a pandas.ExcelFile for the downloaded bytes."""
+    content = download_sheet_xlsx(file_id)
+    return pd.ExcelFile(io.BytesIO(content), engine="openpyxl")
+
+
+def read_sheet_from_sheet(file_id: str, sheet_name: str):
+    content = download_sheet_xlsx(file_id)
+    return pd.read_excel(io.BytesIO(content), sheet_name=sheet_name, engine="openpyxl")
+
+
+# Clean converter → always returns text
 def to_text_one_decimal(val):
-    """
-    Convert value to text.
-    If it can be converted to float, show 1 decimal place.
-    Else return original string.
-    """
     try:
         if pd.isna(val):
             return ""
     except:
         pass
 
-    # Normalize value
     s = str(val).strip()
     if s == "":
         return ""
 
     s = unicodedata.normalize("NFKC", s)
 
-    # Attempt float conversion
     try:
         f = float(s.replace(",", "").replace("%", ""))
         return f"{round(f, 1):.1f}"
     except:
         return s
-
-
-def get_sheetnames():
-    if not Path(EXCEL_FILENAME).exists():
-        return None, "Excel file not found."
-
-    try:
-        xls = pd.ExcelFile(EXCEL_FILENAME, engine="openpyxl")
-        return xls.sheet_names, None
-    except Exception as e:
-        return None, str(e)
 
 
 def parse_sheet(sheetname: str):
@@ -62,19 +68,23 @@ def parse_sheet(sheetname: str):
 
 
 def main():
-
-    # Header image + Result title
-    header_path = "header.png"
-    st.image(header_path, use_container_width=True)
+    # Header image + Result title (if header missing, show nothing)
+    try:
+        st.image("header.png", use_container_width=True)
+    except Exception:
+        pass
 
     st.markdown(
-    "<h2 style='text-align:center; font-weight:700;'>Result Sessional Odd Sem 2025</h2>",
-    unsafe_allow_html=True    )
+        "<h2 style='text-align:center; font-weight:700;'>Result Sessional Odd Sem 2025</h2>",
+        unsafe_allow_html=True
+    )
 
     # Load sheet names
-    sheets, err = get_sheetnames()
-    if err:
-        st.error(err)
+    try:
+        xls = load_excelfile_from_sheet(GOOGLE_SHEET_FILE_ID)
+        sheets = xls.sheet_names
+    except Exception as e:
+        st.error(f"Could not load Google Sheet: {e}")
         return
 
     parsed = [parse_sheet(s) for s in sheets]
@@ -94,10 +104,10 @@ def main():
 
     # Load selected sheet
     try:
-        df = pd.read_excel(EXCEL_FILENAME, sheet_name=sheet_name, engine="openpyxl")
+        df = read_sheet_from_sheet(GOOGLE_SHEET_FILE_ID, sheet_name)
         df.columns = [str(c).strip() for c in df.columns]
     except Exception as e:
-        st.error(f"Could not load sheet: {e}")
+        st.error(f"Could not load sheet '{sheet_name}': {e}")
         return
 
     # Required columns
@@ -116,7 +126,7 @@ def main():
 
     row = df[df[COL_STUDENT_NAME].astype(str) == student].iloc[0]
 
-    # Columns to exclude from attributes
+    # Columns to exclude
     exclude = {COL_STUDENT_NAME, COL_ADMISSION_NO}
     if COL_FATHER_NAME in df.columns:
         exclude.add(COL_FATHER_NAME)
@@ -134,8 +144,7 @@ def main():
 
     attr_list = []
     for col in attributes:
-        value = row[col]
-        formatted = to_text_one_decimal(value)
+        formatted = to_text_one_decimal(row[col])
         attr_list.append({"Attribute / Subject": col, "Value": formatted})
 
     st.table(pd.DataFrame(attr_list))
