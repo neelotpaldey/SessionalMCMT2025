@@ -6,7 +6,8 @@ import io
 import unicodedata
 
 # ---------------- CONFIG ----------------
-GOOGLE_SHEET_FILE_ID = "1H_aN66Joy7Tuzx8NjTygOsMA1J2OUjnz"  # from your link
+#https://docs.google.com/spreadsheets/d/1eGIJXcLZmQdN0Sx_iUQktLkzDMChRkLA/edit?usp=sharing&ouid=115787018379323847851&rtpof=true&sd=true
+GOOGLE_SHEET_FILE_ID = "1eGIJXcLZmQdN0Sx_iUQktLkzDMChRkLA"  # from your link
 COL_STUDENT_NAME = "Student Name"
 COL_ADMISSION_NO = "Admission No."
 COL_FATHER_NAME = "Father Name"   # optional
@@ -75,7 +76,7 @@ def main():
         pass
 
     st.markdown(
-        "<h2 style='text-align:center; font-weight:700;'>Result Sessional Odd Sem 2025</h2>",
+        "<h2 style='text-align:center; font-weight:700;'>Result Sessional 2026</h2>",
         unsafe_allow_html=True
     )
 
