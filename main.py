@@ -6,7 +6,7 @@ import io
 import unicodedata
 
 # ---------------- CONFIG ----------------
-#https://docs.google.com/spreadsheets/d/1eGIJXcLZmQdN0Sx_iUQktLkzDMChRkLA/edit?usp=sharing&ouid=115787018379323847851&rtpof=true&sd=true
+# https://docs.google.com/spreadsheets/d/1eGIJXcLZmQdN0Sx_iUQktLkzDMChRkLA/edit?usp=sharing&ouid=115787018379323847851&rtpof=true&sd=true
 GOOGLE_SHEET_FILE_ID = "1eGIJXcLZmQdN0Sx_iUQktLkzDMChRkLA"  # from your link
 COL_STUDENT_NAME = "Student Name"
 COL_ADMISSION_NO = "Admission No."
